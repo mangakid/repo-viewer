@@ -6,6 +6,9 @@ const mocks = [
   {
     request: {
       query: GET_TOP_REPOS,
+      variables: {
+        searchQuery: "stars:>=10000",
+      },
     },
     result: {
       data: {
@@ -14,16 +17,16 @@ const mocks = [
             {
               id: "foo",
               name: "bar",
-              forkCount: 4562435,
-              stargazerCount: 551234,
+              forks: 4562435,
+              stars: 551234,
               url: "someurl",
               __typename: "Repository",
             },
             {
               id: "baz",
               name: "aname",
-              forkCount: 572632,
-              stargazerCount: 723626,
+              forks: 572632,
+              stars: 723626,
               url: "anotherurl",
               __typename: "Repository",
             },
@@ -35,13 +38,13 @@ const mocks = [
 ];
 
 describe("RepoViewer", () => {
-  test("it shows the loading text when loading", () => {
+  test("it shows the loading text when loading", async () => {
     render(
       <MockedProvider mocks={[]} addTypename={false}>
         <RepoViewer />
       </MockedProvider>
     );
-    expect(screen.getByText(/Loading/)).toBeInTheDocument();
+    expect(await screen.findByText(/Loading/)).toBeInTheDocument();
   });
 
   test("it has the table titles", async () => {

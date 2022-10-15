@@ -1,33 +1,21 @@
-import { useQuery, gql } from "@apollo/client";
+import { useState, useEffect } from "react";
+import { useLazyQuery, gql } from "@apollo/client";
 import { ReposTable } from "./repos-table/repos-table";
 import Typography from "@mui/material/Typography";
+
 import { LoadingComponent, RepoViewerWrapper } from "./repo-viewer.styles";
-
-export type Repo = {
-  name: string;
-  stars: number;
-  forks: number;
-  url: string;
-  id: string;
-};
-
-type RawRepo = {
-  id: string;
-  name: string;
-  forkCount: number;
-  stargazerCount: number;
-  url: string;
-};
+import { ReposData } from "./repos-viewer.types";
+import { SearchBar } from "./search-bar/search-bar";
 
 export const GET_TOP_REPOS = gql`
-  query GET_TOP_REPOS {
-    search(query: "stars:>=10000", type: REPOSITORY, first: 10) {
+  query GET_TOP_REPOS($searchQuery: String!) {
+    search(query: $searchQuery, type: REPOSITORY, first: 10) {
       repos: nodes {
         ... on Repository {
           id
           name
-          forkCount
-          stargazerCount
+          forks: forkCount
+          stars: stargazerCount
           url
         }
       }
@@ -36,20 +24,26 @@ export const GET_TOP_REPOS = gql`
 `;
 
 export const RepoViewer = () => {
-  // fetch top 10 repos
-  const { loading, error, data } = useQuery(GET_TOP_REPOS);
-  const repos = data?.search?.repos?.map(
-    ({ name, id, forkCount, url, stargazerCount }: RawRepo) => ({
-      name,
-      stars: stargazerCount,
-      forks: forkCount,
-      url,
-      id,
-    })
-  );
+  const [searchTerm, setSearchTerm] = useState("");
+  const MINIMUM_STARS = 10000;
+  const starsQuery = `stars:>=${MINIMUM_STARS}`;
+  const searchQuery = searchTerm || starsQuery;
+  const [getRepos, { loading, error, data }] =
+    useLazyQuery<ReposData>(GET_TOP_REPOS);
+
+  // fetch repos
+  useEffect(() => {
+    getRepos({ variables: { searchQuery } });
+  }, [getRepos, searchQuery]);
+
+  const repos = data?.search?.repos || [];
 
   return (
     <RepoViewerWrapper>
+      <SearchBar
+        value={searchTerm}
+        handleChange={(e) => setSearchTerm(e.target.value)}
+      />
       {loading ? (
         <LoadingComponent>
           <Typography variant="h4">Loading...</Typography>
