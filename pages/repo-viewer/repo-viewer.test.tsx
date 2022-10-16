@@ -1,5 +1,5 @@
 import { GET_TOP_REPOS, RepoViewer } from "./repo-viewer";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MockedProvider } from "@apollo/client/testing";
 
 const mocks = [
@@ -28,6 +28,30 @@ const mocks = [
               forks: 572632,
               stars: 723626,
               url: "anotherurl",
+              __typename: "Repository",
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
+    request: {
+      query: GET_TOP_REPOS,
+      variables: {
+        searchQuery: "react",
+      },
+    },
+    result: {
+      data: {
+        search: {
+          repos: [
+            {
+              id: "react",
+              name: "react",
+              forks: 20000,
+              stars: 50000,
+              url: "somereactrepourl",
               __typename: "Repository",
             },
           ],
@@ -73,5 +97,21 @@ describe("RepoViewer", () => {
     expect(await screen.findByText(/aname/)).toBeInTheDocument();
     expect(await screen.findByText(/⭐ 723626/)).toBeInTheDocument();
     expect(await screen.findByText(/🍴 572632/)).toBeInTheDocument();
+  });
+
+  test("it fetches repos based on the search term entered", async () => {
+    render(
+      <MockedProvider mocks={mocks} addTypename={false}>
+        <RepoViewer />
+      </MockedProvider>
+    );
+    const searchBar = await screen.findByLabelText(/search/i);
+    fireEvent.change(searchBar, { target: { value: "react" } });
+
+    const links = await screen.findAllByRole("link");
+    expect(links[0]).toHaveAttribute("href", "somereactrepourl");
+    expect(await screen.findByText(/react/)).toBeInTheDocument();
+    expect(await screen.findByText(/⭐ 50000/)).toBeInTheDocument();
+    expect(await screen.findByText(/🍴 20000/)).toBeInTheDocument();
   });
 });
